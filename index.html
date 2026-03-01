@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gabi & Flo – Hochzeit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Snap container: vertical scroll-snap for 3 sections -->
+    <div class="snap-container" id="snapContainer">
+
+        <!-- SECTION 1: Upload -->
+        <section class="snap-section section-upload" id="sectionUpload">
+            <div class="section-inner">
+                <div class="intro-text">
+                    <h1>Gabi &amp; Flo</h1>
+                    <p class="subtitle" id="introText">Schön, dass ihr dabei seid! Haltet die schönsten Momente fest und teilt sie mit uns.</p>
+                </div>
+                <div class="couple-photo">
+                    <img src="assets/couple.jpg" alt="Gabi & Flo" id="coupleImg" onerror="this.style.display='none'">
+                </div>
+                <button class="btn-primary btn-round" id="btnUpload">Teile deine Momente</button>
+                <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+                <div class="upload-status" id="uploadStatus"></div>
+            </div>
+            <div class="scroll-hint scroll-hint-down" id="hintDown1">
+                <span>&#9662;</span>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Gallery -->
+        <section class="snap-section section-gallery" id="sectionGallery">
+            <div class="scroll-hint scroll-hint-up" id="hintUp2">
+                <span>&#9652;</span>
+            </div>
+            <div class="section-inner">
+                <h2>Galerie</h2>
+                <div class="gallery-wrapper">
+                    <div class="gallery-scroll-hint gallery-hint-left" id="galleryHintLeft">&#9666;</div>
+                    <div class="gallery-scroll" id="galleryScroll">
+                        <div class="gallery-items" id="galleryItems">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                    <div class="gallery-scroll-hint gallery-hint-right" id="galleryHintRight">&#9656;</div>
+                </div>
+                <p class="gallery-empty" id="galleryEmpty">Noch keine Bilder vorhanden.</p>
+            </div>
+            <div class="scroll-hint scroll-hint-down" id="hintDown2">
+                <span>&#9662;</span>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Game Mode -->
+        <section class="snap-section section-game" id="sectionGame">
+            <div class="scroll-hint scroll-hint-up" id="hintUp3">
+                <span>&#9652;</span>
+            </div>
+            <div class="section-inner">
+                <h2>Foto-Challenge</h2>
+                <div class="task-card" id="taskCard">
+                    <p class="task-label">Deine Aufgabe:</p>
+                    <p class="task-text" id="taskText">Lade die Seite, um eine Aufgabe zu erhalten…</p>
+                </div>
+                <button class="btn-primary btn-round" id="btnCapture">Foto aufnehmen</button>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+                <!-- Preview + name overlay -->
+                <div class="game-preview" id="gamePreview" style="display:none;">
+                    <img id="gamePreviewImg" src="" alt="Vorschau">
+                    <input type="text" id="gameNameInput" class="input-name" placeholder="Dein Name">
+                    <button class="btn-primary btn-round btn-send" id="btnSendGame">Senden</button>
+                </div>
+                <div class="upload-status" id="gameStatus"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Lightbox overlay for gallery -->
+    <div class="lightbox" id="lightbox" style="display:none;">
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+        <img id="lightboxImg" src="" alt="Bild">
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

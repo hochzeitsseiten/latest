@@ -1,0 +1,13 @@
+services:
+  wedding-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - WEDDING_API_KEY=your-secret-key-here
+    volumes:
+      - wedding-data:/data
+    restart: unless-stopped
+
+volumes:
+  wedding-data:
