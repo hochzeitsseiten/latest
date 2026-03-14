@@ -20,7 +20,9 @@ UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/data/uploads"))
 THUMB_DIR = Path(os.environ.get("THUMB_DIR", "/data/thumbnails"))
 TASKS_FILE = Path(os.environ.get("TASKS_FILE", "/app/tasks.json"))
 GAME_LOG = Path(os.environ.get("GAME_LOG", "/data/game_log.json"))
-THUMB_SIZE = (400, 400)
+COUPLE_NAME = os.environ.get("COUPLE_NAME", "Brautpaar")
+COUPLE_IMAGE = Path(os.environ.get("COUPLE_IMAGE", "/data/assets/couple.jpg"))
+THUMB_SIZE = (800, 800)
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 THUMB_DIR.mkdir(parents=True, exist_ok=True)
@@ -73,6 +75,23 @@ def verify_key(x_api_key: str = Header(default="")):
 
 # ---- Routes ----
 
+@app.get("/config")
+async def get_config(x_api_key: str = Header(default="")):
+    verify_key(x_api_key)
+    return {
+        "couple_name": COUPLE_NAME,
+        "has_couple_image": COUPLE_IMAGE.exists(),
+    }
+
+
+@app.get("/assets/couple.jpg")
+async def serve_couple_image(x_api_key: str = Header(default="")):
+    verify_key(x_api_key)
+    if not COUPLE_IMAGE.exists():
+        raise HTTPException(status_code=404, detail="Couple image not found")
+    return FileResponse(COUPLE_IMAGE, media_type="image/jpeg")
+
+
 @app.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -95,7 +114,7 @@ async def upload_file(
             img = Image.open(filepath)
             img.thumbnail(THUMB_SIZE)
             thumb_path = THUMB_DIR / (file_id + ".jpg")
-            img.convert("RGB").save(thumb_path, "JPEG", quality=75)
+            img.convert("RGB").save(thumb_path, "JPEG", quality=85)
         except Exception:
             pass  # skip thumbnail on failure
 
@@ -151,10 +170,64 @@ async def get_task(
     if not x_user_id:
         raise HTTPException(status_code=400, detail="Missing user id")
 
-    if x_user_id not in user_tasks:
-        user_tasks[x_user_id] = random.choice(TASKS)
+    # Check if user already completed this task
+    log = _load_game_log()
+    user_entries = [e for e in log if e.get("user_id") == x_user_id]
 
-    return {"task": user_tasks[x_user_id]}
+    if x_user_id not in user_tasks:
+        # Check if user had a task logged already — restore it
+        if user_entries:
+            # Assign a new task that the user hasn't done yet
+            done_tasks = {e.get("task") for e in user_entries}
+            available = [t for t in TASKS if t not in done_tasks]
+            if available:
+                user_tasks[x_user_id] = random.choice(available)
+            else:
+                user_tasks[x_user_id] = random.choice(TASKS)
+        else:
+            user_tasks[x_user_id] = random.choice(TASKS)
+
+    current_task = user_tasks[x_user_id]
+
+    # Check if the current task is already completed
+    completed_entry = next(
+        (e for e in user_entries if e.get("task") == current_task), None
+    )
+
+    if completed_entry:
+        file_id = completed_entry.get("file_id", "")
+        # Find the thumbnail for this submission
+        thumb_path = "/thumbnails/" + file_id + ".jpg"
+        return {
+            "task": current_task,
+            "completed": True,
+            "submission_thumbnail": thumb_path,
+            "submission_name": completed_entry.get("name", ""),
+        }
+
+    return {"task": current_task, "completed": False}
+
+
+@app.post("/task/new")
+async def get_new_task(
+    x_api_key: str = Header(default=""),
+    x_user_id: str = Header(default=""),
+):
+    verify_key(x_api_key)
+
+    if not x_user_id:
+        raise HTTPException(status_code=400, detail="Missing user id")
+
+    log = _load_game_log()
+    done_tasks = {e.get("task") for e in log if e.get("user_id") == x_user_id}
+    available = [t for t in TASKS if t not in done_tasks]
+
+    if not available:
+        return {"task": None, "all_done": True}
+
+    new_task = random.choice(available)
+    user_tasks[x_user_id] = new_task
+    return {"task": new_task, "completed": False, "all_done": False}
 
 
 @app.post("/game/submit")
@@ -166,6 +239,15 @@ async def game_submit(
     x_user_id: str = Header(default=""),
 ):
     verify_key(x_api_key)
+
+    # Check if user already completed this task
+    log = _load_game_log()
+    already_done = any(
+        e.get("user_id") == x_user_id and e.get("task") == task
+        for e in log
+    )
+    if already_done:
+        raise HTTPException(status_code=409, detail="Challenge already completed")
 
     ext = Path(file.filename or "file").suffix.lower()
     file_id = uuid.uuid4().hex
@@ -181,12 +263,11 @@ async def game_submit(
             img = Image.open(filepath)
             img.thumbnail(THUMB_SIZE)
             thumb_path = THUMB_DIR / (file_id + ".jpg")
-            img.convert("RGB").save(thumb_path, "JPEG", quality=75)
+            img.convert("RGB").save(thumb_path, "JPEG", quality=85)
         except Exception:
             pass
 
     # Log game entry
-    log = _load_game_log()
     log.append({
         "user_id": x_user_id,
         "name": name,

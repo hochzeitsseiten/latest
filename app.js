@@ -6,7 +6,6 @@
     'use strict';
 
     // ---- Configuration ----
-    // API_BASE will be your VPS domain behind Cloudflare tunnel, e.g. https://api.wedding_api.batterybytes.de
     const API_BASE = window.WEDDING_API_BASE || 'https://wedding_api.batterybytes.de';
 
     // ---- Storage helpers (localStorage for persistence) ----
@@ -23,14 +22,12 @@
     }
 
     // ---- Init auth ----
-    // API key can arrive via ?key= query param (QR code link)
     function initAuth() {
         const params = new URLSearchParams(window.location.search);
         const keyParam = params.get('key');
 
         if (keyParam) {
             setStored('api_key', keyParam);
-            // Clean URL so key isn't visible / shared accidentally
             window.history.replaceState({}, '', window.location.pathname);
         }
 
@@ -82,6 +79,55 @@
         return res.json();
     }
 
+    async function apiPost(path) {
+        const res = await fetch(API_BASE + path, {
+            method: 'POST',
+            headers: apiHeaders()
+        });
+        if (!res.ok) throw new Error('API error ' + res.status);
+        return res.json();
+    }
+
+    async function fetchAuthenticatedImage(url) {
+        const res = await fetch(url, { headers: apiHeaders() });
+        if (!res.ok) throw new Error('Image load error ' + res.status);
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+    }
+
+    // ---- Auth gate: load config or show error ----
+    const authGate = document.getElementById('authGate');
+    const snapContainer = document.getElementById('snapContainer');
+    const coupleName = document.getElementById('coupleName');
+    const couplePhotoWrap = document.getElementById('couplePhotoWrap');
+    const coupleImg = document.getElementById('coupleImg');
+
+    async function loadConfig() {
+        try {
+            const config = await apiGet('/config');
+            // Valid key — show app
+            document.title = config.couple_name + ' – Hochzeit';
+            coupleName.textContent = config.couple_name;
+
+            if (config.has_couple_image) {
+                fetchAuthenticatedImage(API_BASE + '/assets/couple.jpg').then(function (blobUrl) {
+                    coupleImg.src = blobUrl;
+                    coupleImg.alt = config.couple_name;
+                    couplePhotoWrap.style.display = '';
+                });
+            }
+
+            snapContainer.style.display = '';
+            authGate.style.display = 'none';
+            return true;
+        } catch (e) {
+            // Invalid key or no connection
+            snapContainer.style.display = 'none';
+            authGate.style.display = 'flex';
+            return false;
+        }
+    }
+
     // ---- Upload section ----
     const btnUpload = document.getElementById('btnUpload');
     const fileInput = document.getElementById('fileInput');
@@ -117,23 +163,34 @@
         fileInput.value = '';
     });
 
-    // ---- Gallery ----
+    // ---- Gallery (grid layout, fills page) ----
     const galleryItems = document.getElementById('galleryItems');
     const galleryEmpty = document.getElementById('galleryEmpty');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxClose = document.getElementById('lightboxClose');
+    const btnRefreshGallery = document.getElementById('btnRefreshGallery');
 
-    async function fetchAuthenticatedImage(url) {
-        const res = await fetch(url, { headers: apiHeaders() });
-        if (!res.ok) throw new Error('Image load error ' + res.status);
-        const blob = await res.blob();
-        return URL.createObjectURL(blob);
+    function computeGalleryGrid() {
+        var section = document.getElementById('sectionGallery');
+        var headerH = document.querySelector('.gallery-header').offsetHeight;
+        var hintsH = 60; // space for scroll hints
+        var availableH = section.clientHeight - headerH - hintsH;
+        var gap = 6;
+        // Determine how many rows fit
+        var minCell = 100;
+        var rows = Math.max(2, Math.floor(availableH / (minCell + gap)));
+        var cellSize = Math.floor((availableH - (rows - 1) * gap) / rows);
+        cellSize = Math.max(80, Math.min(cellSize, 160));
+        document.documentElement.style.setProperty('--gallery-rows', rows);
+        document.documentElement.style.setProperty('--gallery-cell', cellSize + 'px');
+        return { rows: rows, cellSize: cellSize };
     }
 
     async function loadGallery() {
         try {
-            const data = await apiGet('/gallery');
+            var gridInfo = computeGalleryGrid();
+            var data = await apiGet('/gallery');
             galleryItems.innerHTML = '';
 
             if (!data.images || data.images.length === 0) {
@@ -144,9 +201,9 @@
             galleryEmpty.style.display = 'none';
 
             data.images.forEach(function (img) {
-                const div = document.createElement('div');
+                var div = document.createElement('div');
                 div.className = 'gallery-item';
-                const imgEl = document.createElement('img');
+                var imgEl = document.createElement('img');
                 imgEl.alt = 'Hochzeitsfoto';
                 imgEl.loading = 'lazy';
                 div.appendChild(imgEl);
@@ -170,6 +227,10 @@
         }
     }
 
+    btnRefreshGallery.addEventListener('click', function () {
+        loadGallery();
+    });
+
     lightboxClose.addEventListener('click', function () {
         lightbox.style.display = 'none';
         lightboxImg.src = '';
@@ -191,6 +252,11 @@
     const gameNameInput = document.getElementById('gameNameInput');
     const btnSendGame = document.getElementById('btnSendGame');
     const gameStatus = document.getElementById('gameStatus');
+    const challengeActive = document.getElementById('challengeActive');
+    const challengeCompleted = document.getElementById('challengeCompleted');
+    const completedImg = document.getElementById('completedImg');
+    const completedText = document.getElementById('completedText');
+    const btnNewChallenge = document.getElementById('btnNewChallenge');
 
     let currentTask = null;
 
@@ -199,6 +265,23 @@
             const data = await apiGet('/task');
             currentTask = data.task;
             taskText.textContent = currentTask || 'Keine Aufgabe verfügbar.';
+
+            if (data.completed) {
+                // Show completed state
+                challengeActive.style.display = 'none';
+                challengeCompleted.style.display = '';
+                completedText.textContent = 'Geschafft! Danke, ' + (data.submission_name || '') + '!';
+                gameStatus.textContent = '';
+
+                if (data.submission_thumbnail) {
+                    fetchAuthenticatedImage(API_BASE + data.submission_thumbnail).then(function (blobUrl) {
+                        completedImg.src = blobUrl;
+                    });
+                }
+            } else {
+                challengeActive.style.display = '';
+                challengeCompleted.style.display = 'none';
+            }
         } catch (e) {
             taskText.textContent = 'Aufgabe konnte nicht geladen werden.';
         }
@@ -240,13 +323,38 @@
             fd.append('name', name);
             fd.append('task', currentTask || '');
             await apiPostForm('/game/submit', fd);
-            gameStatus.textContent = 'Geschafft! Danke, ' + name + '!';
-            gameStatus.className = 'upload-status success';
+            gameStatus.textContent = '';
             gamePreview.style.display = 'none';
             cameraInput.value = '';
             gameNameInput.value = '';
+            // Reload task to show completed state
+            loadTask();
+            loadGallery();
         } catch (e) {
-            gameStatus.textContent = 'Fehler beim Senden.';
+            if (e.message && e.message.indexOf('409') !== -1) {
+                gameStatus.textContent = 'Diese Challenge hast du bereits erledigt.';
+            } else {
+                gameStatus.textContent = 'Fehler beim Senden.';
+            }
+            gameStatus.className = 'upload-status error';
+        }
+    });
+
+    btnNewChallenge.addEventListener('click', async function () {
+        try {
+            const data = await apiPost('/task/new');
+            if (data.all_done) {
+                gameStatus.textContent = 'Du hast alle Challenges geschafft!';
+                gameStatus.className = 'upload-status success';
+                return;
+            }
+            currentTask = data.task;
+            taskText.textContent = currentTask;
+            challengeActive.style.display = '';
+            challengeCompleted.style.display = 'none';
+            gameStatus.textContent = '';
+        } catch (e) {
+            gameStatus.textContent = 'Fehler beim Laden einer neuen Challenge.';
             gameStatus.className = 'upload-status error';
         }
     });
@@ -266,6 +374,10 @@
 
     // ---- Init ----
     initAuth();
-    loadGallery();
-    loadTask();
+    loadConfig().then(function (ok) {
+        if (ok) {
+            loadGallery();
+            loadTask();
+        }
+    });
 })();

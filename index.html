@@ -3,22 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gabi & Flo – Hochzeit</title>
+    <title>Hochzeit</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Auth gate: shown when API key is invalid -->
+    <div class="auth-gate" id="authGate" style="display:none;">
+        <div class="auth-gate-inner">
+            <p class="auth-gate-text">Oh, seems you are not right here.</p>
+        </div>
+    </div>
+
     <!-- Snap container: vertical scroll-snap for 3 sections -->
-    <div class="snap-container" id="snapContainer">
+    <div class="snap-container" id="snapContainer" style="display:none;">
 
         <!-- SECTION 1: Upload -->
         <section class="snap-section section-upload" id="sectionUpload">
             <div class="section-inner">
                 <div class="intro-text">
-                    <h1>Gabi &amp; Flo</h1>
+                    <h1 id="coupleName"></h1>
                     <p class="subtitle" id="introText">Schön, dass ihr dabei seid! Haltet die schönsten Momente fest und teilt sie mit uns.</p>
                 </div>
-                <div class="couple-photo">
-                    <img src="assets/couple.jpg" alt="Gabi & Flo" id="coupleImg" onerror="this.style.display='none'">
+                <div class="couple-photo" id="couplePhotoWrap" style="display:none;">
+                    <img src="" alt="" id="coupleImg">
                 </div>
                 <button class="btn-primary btn-round" id="btnUpload">Teile deine Momente</button>
                 <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
@@ -34,16 +41,17 @@
             <div class="scroll-hint scroll-hint-up" id="hintUp2">
                 <span>&#9652;</span>
             </div>
-            <div class="section-inner">
-                <h2>Galerie</h2>
-                <div class="gallery-wrapper">
-                    <div class="gallery-scroll-hint gallery-hint-left" id="galleryHintLeft">&#9666;</div>
-                    <div class="gallery-scroll" id="galleryScroll">
-                        <div class="gallery-items" id="galleryItems">
+            <div class="gallery-page">
+                <div class="gallery-header">
+                    <h2>Galerie</h2>
+                    <button class="btn-refresh" id="btnRefreshGallery" title="Aktualisieren">&#8635;</button>
+                </div>
+                <div class="gallery-grid-wrapper">
+                    <div class="gallery-grid-scroll" id="galleryScroll">
+                        <div class="gallery-grid" id="galleryItems">
                             <!-- Filled by JS -->
                         </div>
                     </div>
-                    <div class="gallery-scroll-hint gallery-hint-right" id="galleryHintRight">&#9656;</div>
                 </div>
                 <p class="gallery-empty" id="galleryEmpty">Noch keine Bilder vorhanden.</p>
             </div>
@@ -63,15 +71,29 @@
                     <p class="task-label">Deine Aufgabe:</p>
                     <p class="task-text" id="taskText">Lade die Seite, um eine Aufgabe zu erhalten…</p>
                 </div>
-                <button class="btn-primary btn-round" id="btnCapture">Foto aufnehmen</button>
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
 
-                <!-- Preview + name overlay -->
-                <div class="game-preview" id="gamePreview" style="display:none;">
-                    <img id="gamePreviewImg" src="" alt="Vorschau">
-                    <input type="text" id="gameNameInput" class="input-name" placeholder="Dein Name">
-                    <button class="btn-primary btn-round btn-send" id="btnSendGame">Senden</button>
+                <!-- Shown when challenge is NOT yet completed -->
+                <div id="challengeActive">
+                    <button class="btn-primary btn-round" id="btnCapture">Foto aufnehmen</button>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+                    <!-- Preview + name overlay -->
+                    <div class="game-preview" id="gamePreview" style="display:none;">
+                        <img id="gamePreviewImg" src="" alt="Vorschau">
+                        <input type="text" id="gameNameInput" class="input-name" placeholder="Dein Name">
+                        <button class="btn-primary btn-round btn-send" id="btnSendGame">Senden</button>
+                    </div>
                 </div>
+
+                <!-- Shown when challenge IS completed -->
+                <div id="challengeCompleted" style="display:none;">
+                    <div class="completed-preview">
+                        <img id="completedImg" src="" alt="Dein Foto">
+                    </div>
+                    <p class="completed-text" id="completedText"></p>
+                    <button class="btn-primary btn-round btn-secondary" id="btnNewChallenge">Neue Challenge</button>
+                </div>
+
                 <div class="upload-status" id="gameStatus"></div>
             </div>
         </section>

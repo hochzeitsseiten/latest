@@ -28,6 +28,28 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* ---- Auth gate ---- */
+.auth-gate {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, var(--blue-light) 0%, var(--white) 100%);
+    z-index: 200;
+}
+
+.auth-gate-inner {
+    text-align: center;
+    padding: 2rem;
+}
+
+.auth-gate-text {
+    font-size: 1.2rem;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
 /* ---- Snap container ---- */
 .snap-container {
     height: 100vh;
@@ -128,10 +150,42 @@ h2 {
     background: var(--blue-dark);
 }
 
+.btn-secondary {
+    background: transparent;
+    color: var(--blue-dark);
+    border: 2px solid var(--blue);
+    box-shadow: none;
+    padding: 0.7rem 1.8rem;
+    font-size: 0.9rem;
+}
+
+.btn-secondary:active {
+    background: var(--blue-light);
+}
+
 .btn-send {
     padding: 0.8rem 2rem;
     font-size: 0.9rem;
     margin-top: 0.5rem;
+}
+
+/* ---- Refresh button ---- */
+.btn-refresh {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--text-light);
+    padding: 0.15rem 0.4rem;
+    border-radius: 50%;
+    transition: background 0.2s, transform 0.3s;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-refresh:active {
+    background: var(--blue-light);
+    transform: rotate(180deg);
 }
 
 /* ---- Scroll hints ---- */
@@ -172,41 +226,64 @@ h2 {
     100% { opacity: 0; }
 }
 
-/* ---- Gallery ---- */
-.gallery-wrapper {
-    position: relative;
+/* ---- Gallery (full-page grid, horizontal swipe) ---- */
+.gallery-page {
     width: 100%;
-    max-width: 100vw;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.5rem;
+    max-height: 100vh;
+    overflow: hidden;
 }
 
-.gallery-scroll {
+.gallery-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 0 0.5rem;
+    flex-shrink: 0;
+}
+
+.gallery-grid-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.gallery-grid-scroll {
     overflow-x: auto;
     overflow-y: hidden;
+    height: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 0.5rem 0;
+    scroll-snap-type: x mandatory;
 }
 
-.gallery-scroll::-webkit-scrollbar {
+.gallery-grid-scroll::-webkit-scrollbar {
     display: none;
 }
 
-.gallery-items {
-    display: flex;
-    gap: 1rem;
-    padding: 0 1rem;
+.gallery-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(var(--gallery-rows, 3), 1fr);
+    grid-auto-columns: min-content;
+    gap: 6px;
+    padding: 6px;
+    height: 100%;
+    min-width: min-content;
 }
 
 .gallery-item {
-    flex-shrink: 0;
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
+    width: var(--gallery-cell, 110px);
+    height: var(--gallery-cell, 110px);
+    border-radius: 12px;
     overflow: hidden;
-    border: 3px solid var(--blue);
-    box-shadow: var(--shadow);
     cursor: pointer;
     transition: transform 0.15s;
+    scroll-snap-align: start;
 }
 
 .gallery-item:active {
@@ -217,31 +294,14 @@ h2 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.gallery-scroll-hint {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.4rem;
-    color: var(--blue-dark);
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 2;
-    animation: fadeHint 5s ease-in-out forwards;
-}
-
-.gallery-hint-left {
-    left: 0.2rem;
-}
-
-.gallery-hint-right {
-    right: 0.2rem;
+    display: block;
 }
 
 .gallery-empty {
     font-size: 0.9rem;
     color: var(--text-light);
+    text-align: center;
+    padding: 2rem 0;
 }
 
 /* ---- Lightbox ---- */
@@ -314,6 +374,26 @@ h2 {
     border: 3px solid var(--blue);
 }
 
+/* ---- Completed challenge ---- */
+.completed-preview {
+    margin-top: 1rem;
+}
+
+.completed-preview img {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #5cb85c;
+}
+
+.completed-text {
+    font-size: 0.95rem;
+    color: #5cb85c;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
 .input-name {
     border: 2px solid var(--blue);
     border-radius: var(--radius);
@@ -347,10 +427,6 @@ h2 {
 
 /* ---- Responsive ---- */
 @media (min-width: 600px) {
-    .gallery-item {
-        width: 160px;
-        height: 160px;
-    }
     h1 {
         font-size: 2.4rem;
     }

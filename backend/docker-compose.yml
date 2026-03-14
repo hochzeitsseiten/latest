@@ -3,6 +3,8 @@ services:
     build: .
     environment:
       - WEDDING_API_KEY=${WEDDING_API_KEY}
+      - COUPLE_NAME=${COUPLE_NAME}
+      - COUPLE_IMAGE=/data/assets/couple.jpg
     volumes:
       - ./data:/data
     restart: unless-stopped
