@@ -6,8 +6,8 @@
     'use strict';
 
     // ---- Configuration ----
-    // API_BASE will be your VPS domain behind Cloudflare tunnel, e.g. https://api.gabiundflo.de
-    const API_BASE = window.WEDDING_API_BASE || 'https://api.gabiundflo.de';
+    // API_BASE will be your VPS domain behind Cloudflare tunnel, e.g. https://api.wedding_api.batterybytes.de
+    const API_BASE = window.WEDDING_API_BASE || 'https://wedding_api.batterybytes.de';
 
     // ---- Cookie helpers ----
     function setCookie(name, value, days) {
