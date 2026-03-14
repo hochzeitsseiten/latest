@@ -9,16 +9,13 @@
     // API_BASE will be your VPS domain behind Cloudflare tunnel, e.g. https://api.wedding_api.batterybytes.de
     const API_BASE = window.WEDDING_API_BASE || 'https://wedding_api.batterybytes.de';
 
-    // ---- Cookie helpers ----
-    function setCookie(name, value, days) {
-        const d = new Date();
-        d.setTime(d.getTime() + days * 86400000);
-        document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    // ---- Storage helpers (localStorage for persistence) ----
+    function setStored(name, value) {
+        try { localStorage.setItem(name, value); } catch (e) { /* quota or private mode */ }
     }
 
-    function getCookie(name) {
-        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-        return match ? decodeURIComponent(match[2]) : null;
+    function getStored(name) {
+        try { return localStorage.getItem(name); } catch (e) { return null; }
     }
 
     function generateUserId() {
@@ -32,22 +29,32 @@
         const keyParam = params.get('key');
 
         if (keyParam) {
-            setCookie('api_key', keyParam, 365);
+            setStored('api_key', keyParam);
             // Clean URL so key isn't visible / shared accidentally
             window.history.replaceState({}, '', window.location.pathname);
         }
 
-        if (!getCookie('user_id')) {
-            setCookie('user_id', generateUserId(), 365);
+        // Migrate old cookie values to localStorage (one-time)
+        if (!getStored('api_key')) {
+            const cookieKey = (document.cookie.match(/(^| )api_key=([^;]+)/) || [])[2];
+            if (cookieKey) setStored('api_key', decodeURIComponent(cookieKey));
+        }
+        if (!getStored('user_id')) {
+            const cookieUid = (document.cookie.match(/(^| )user_id=([^;]+)/) || [])[2];
+            if (cookieUid) setStored('user_id', decodeURIComponent(cookieUid));
+        }
+
+        if (!getStored('user_id')) {
+            setStored('user_id', generateUserId());
         }
     }
 
     function getApiKey() {
-        return getCookie('api_key') || '';
+        return getStored('api_key') || '';
     }
 
     function getUserId() {
-        return getCookie('user_id') || '';
+        return getStored('user_id') || '';
     }
 
     // ---- API helpers ----
