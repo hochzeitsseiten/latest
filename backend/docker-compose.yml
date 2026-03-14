@@ -1,13 +1,22 @@
 services:
   wedding-api:
     build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - WEDDING_API_KEY=your-secret-key-here
     volumes:
       - wedding-data:/data
     restart: unless-stopped
+    networks:
+      - wedding_net
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel-wedding_api
+    restart: always
+    command: tunnel run --token ${CLOUDFLARE_TOKEN}
+    networks:
+      - wedding_net
+
+networks:
+  wedding_net:
+    driver: bridge
 
 volumes:
   wedding-data:
