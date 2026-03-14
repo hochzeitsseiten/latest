@@ -124,6 +124,13 @@
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxClose = document.getElementById('lightboxClose');
 
+    async function fetchAuthenticatedImage(url) {
+        const res = await fetch(url, { headers: apiHeaders() });
+        if (!res.ok) throw new Error('Image load error ' + res.status);
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+    }
+
     async function loadGallery() {
         try {
             const data = await apiGet('/gallery');
@@ -140,14 +147,20 @@
                 const div = document.createElement('div');
                 div.className = 'gallery-item';
                 const imgEl = document.createElement('img');
-                imgEl.src = API_BASE + img.thumbnail;
                 imgEl.alt = 'Hochzeitsfoto';
                 imgEl.loading = 'lazy';
                 div.appendChild(imgEl);
 
+                fetchAuthenticatedImage(API_BASE + img.thumbnail).then(function (blobUrl) {
+                    imgEl.src = blobUrl;
+                });
+
                 div.addEventListener('click', function () {
-                    lightboxImg.src = API_BASE + img.full;
+                    lightboxImg.src = '';
                     lightbox.style.display = 'flex';
+                    fetchAuthenticatedImage(API_BASE + img.full).then(function (blobUrl) {
+                        lightboxImg.src = blobUrl;
+                    });
                 });
 
                 galleryItems.appendChild(div);
