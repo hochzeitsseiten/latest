@@ -1,4 +1,4 @@
-# Gabi & Flo – Wedding Photo App
+# Wedding Photo App
 
 A simple wedding photo sharing app with three sections: upload, gallery, and photo challenge game.
 
@@ -35,7 +35,7 @@ cd backend
 
 # Set your environment variables
 export WEDDING_API_KEY="your-secret-key"
-export COUPLE_NAME="Gabi & Flo"
+export COUPLE_NAME="Namen"
 export CLOUDFLARE_TOKEN="your-cloudflare-tunnel-token"
 
 # Build and run (includes Cloudflare tunnel)
@@ -78,6 +78,6 @@ All endpoints (except `/health`) require the `X-API-Key` header. Task and game e
 
 ## QR Code
 
-Generate a QR code pointing to: `https://gabiundflo.github.io/?key=your-secret-key`
+Generate a QR code pointing to: `https://hochzeitsseiten.github.io/latest/?key=your-secret-key`
 
 The API key is stored in browser cookies on first visit so subsequent visits work without the QR code.
