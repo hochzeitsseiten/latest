@@ -11,6 +11,7 @@
     --text-light: #6b6b6b;
     --radius: 50px;
     --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    --app-height: 100dvh;
 }
 
 * {
@@ -52,14 +53,14 @@ html, body {
 
 /* ---- Snap container ---- */
 .snap-container {
-    height: 100vh;
+    height: var(--app-height);
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
 }
 
 .snap-section {
-    min-height: 100vh;
+    min-height: var(--app-height);
     scroll-snap-align: start;
     display: flex;
     flex-direction: column;
@@ -230,7 +231,7 @@ h2 {
 /* ---- Gallery (full-page grid, horizontal swipe) ---- */
 .gallery-page {
     width: 100%;
-    height: calc(100vh - 4rem);
+    height: calc(var(--app-height) - 4rem);
     display: flex;
     flex-direction: column;
     padding: 0 0.5rem;
@@ -261,7 +262,7 @@ h2 {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scroll-snap-type: y proximity;
-    overscroll-behavior: contain;
+    overscroll-behavior: auto;
 }
 
 .gallery-grid {
@@ -457,4 +458,32 @@ h2 {
     .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
+}
+
+.section-dots {
+    position: fixed;
+    left: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(123, 184, 217, 0.8);
+    background: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.section-dot.active {
+    width: 12px;
+    height: 12px;
+    background: var(--blue-dark);
+    border-color: var(--blue-dark);
 }

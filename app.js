@@ -98,9 +98,13 @@
     // ---- Auth gate: load config or show error ----
     const authGate = document.getElementById('authGate');
     const snapContainer = document.getElementById('snapContainer');
+    const sectionDots = document.getElementById('sectionDots');
     const coupleName = document.getElementById('coupleName');
     const couplePhotoWrap = document.getElementById('couplePhotoWrap');
     const coupleImg = document.getElementById('coupleImg');
+    const sectionUpload = document.getElementById('sectionUpload');
+    const sectionGallery = document.getElementById('sectionGallery');
+    const sectionGame = document.getElementById('sectionGame');
 
     async function loadConfig() {
         try {
@@ -118,11 +122,13 @@
             }
 
             snapContainer.style.display = '';
+            sectionDots.style.display = 'flex';
             authGate.style.display = 'none';
             return true;
         } catch (e) {
             // Invalid key or no connection
             snapContainer.style.display = 'none';
+            sectionDots.style.display = 'none';
             authGate.style.display = 'flex';
             return false;
         }
@@ -172,9 +178,12 @@
     const lightboxPrev = document.getElementById('lightboxPrev');
     const lightboxNext = document.getElementById('lightboxNext');
     const btnRefreshGallery = document.getElementById('btnRefreshGallery');
+    const galleryScroll = document.getElementById('galleryScroll');
     let galleryImageList = [];
     let currentLightboxIndex = -1;
     let lightboxTouchStartX = null;
+    let galleryTouchStartY = null;
+    let sectionHandoffLocked = false;
 
     function closeLightbox() {
         lightbox.style.display = 'none';
@@ -200,6 +209,22 @@
     function navigateLightbox(step) {
         if (currentLightboxIndex === -1) return;
         showLightboxImage(currentLightboxIndex + step);
+    }
+
+    function lockSectionHandoff() {
+        sectionHandoffLocked = true;
+        window.setTimeout(function () { sectionHandoffLocked = false; }, 450);
+    }
+
+    function scrollToSection(section) {
+        if (!section || sectionHandoffLocked) return;
+        lockSectionHandoff();
+        snapContainer.scrollTo({ top: section.offsetTop, behavior: 'smooth' });
+    }
+
+    function handoffGalleryScroll(direction) {
+        if (direction > 0) scrollToSection(sectionGame);
+        if (direction < 0) scrollToSection(sectionUpload);
     }
 
     async function loadGallery() {
@@ -284,6 +309,40 @@
         if (Math.abs(deltaX) < 40) return;
         if (deltaX < 0) navigateLightbox(1);
         if (deltaX > 0) navigateLightbox(-1);
+    }, { passive: true });
+
+    galleryScroll.addEventListener('wheel', function (e) {
+        var atTop = galleryScroll.scrollTop <= 0;
+        var atBottom = galleryScroll.scrollTop + galleryScroll.clientHeight >= galleryScroll.scrollHeight - 1;
+
+        if (e.deltaY > 0 && atBottom) {
+            e.preventDefault();
+            handoffGalleryScroll(1);
+        } else if (e.deltaY < 0 && atTop) {
+            e.preventDefault();
+            handoffGalleryScroll(-1);
+        }
+    }, { passive: false });
+
+    galleryScroll.addEventListener('touchstart', function (e) {
+        if (!e.touches || !e.touches.length) return;
+        galleryTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    galleryScroll.addEventListener('touchend', function (e) {
+        if (galleryTouchStartY === null) return;
+        var touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) {
+            galleryTouchStartY = null;
+            return;
+        }
+        var deltaY = galleryTouchStartY - touch.clientY;
+        var atTop = galleryScroll.scrollTop <= 0;
+        var atBottom = galleryScroll.scrollTop + galleryScroll.clientHeight >= galleryScroll.scrollHeight - 1;
+        galleryTouchStartY = null;
+
+        if (deltaY > 40 && atBottom) handoffGalleryScroll(1);
+        if (deltaY < -40 && atTop) handoffGalleryScroll(-1);
     }, { passive: true });
 
     // ---- Game mode ----
@@ -405,6 +464,32 @@
     // ---- Scroll hint fade-out on scroll ----
     const container = document.getElementById('snapContainer');
     let hintsFaded = false;
+    const sectionList = [sectionUpload, sectionGallery, sectionGame];
+    const dotList = Array.prototype.slice.call(document.querySelectorAll('.section-dot'));
+
+    function updateDotIndicator() {
+        var current = 0;
+        var bestDistance = Infinity;
+        for (var i = 0; i < sectionList.length; i++) {
+            var distance = Math.abs(sectionList[i].offsetTop - container.scrollTop);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                current = i;
+            }
+        }
+
+        dotList.forEach(function (dot, idx) {
+            dot.classList.toggle('active', idx === current);
+        });
+    }
+
+    dotList.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+            var targetId = dot.getAttribute('data-target');
+            var target = document.getElementById(targetId);
+            scrollToSection(target);
+        });
+    });
 
     container.addEventListener('scroll', function () {
         if (hintsFaded) return;
@@ -415,12 +500,27 @@
         });
     }, { passive: true });
 
+    container.addEventListener('scroll', updateDotIndicator, { passive: true });
+
+    function updateAppHeight() {
+        var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        document.documentElement.style.setProperty('--app-height', Math.round(h) + 'px');
+    }
+
+    updateAppHeight();
+    window.addEventListener('resize', updateAppHeight, { passive: true });
+    window.addEventListener('orientationchange', updateAppHeight, { passive: true });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateAppHeight, { passive: true });
+    }
+
     // ---- Init ----
     initAuth();
     loadConfig().then(function (ok) {
         if (ok) {
             loadGallery();
             loadTask();
+            updateDotIndicator();
         }
     });
 })();
